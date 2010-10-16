@@ -80,8 +80,8 @@ strings. Note that you must have Font Lock enabled."
   (define-key ruby-mode-map "{" 'ruby-electric-curlies)
   (define-key ruby-mode-map "(" 'ruby-electric-matching-char)
   (define-key ruby-mode-map "[" 'ruby-electric-matching-char)
-  (define-key ruby-mode-map "\"" 'ruby-electric-matching-char)
-  (define-key ruby-mode-map "\'" 'ruby-electric-matching-char)
+  (define-key ruby-mode-map "\"" 'ruby-electric-matching-paren)
+  (define-key ruby-mode-map "\'" 'ruby-electric-matching-paren)
   (define-key ruby-mode-map "|" 'ruby-electric-bar)
   (define-key ruby-mode-map (kbd "RET") 'ruby-electric-return)
   (define-key ruby-mode-map (kbd "C-j") 'ruby-electric-return)
@@ -159,6 +159,12 @@ strings. Note that you must have Font Lock enabled."
        (save-excursion
          (insert (cdr (assoc last-command-event
                              ruby-electric-matching-delimeter-alist))))))
+
+(defun ruby-electric-matching-paren(arg)
+  (interactive "P")
+  (if (looking-at (string last-command-event))
+      (forward-char 1)
+    (ruby-electric-matching-char arg)))
 
 (defun ruby-electric-close-matching-char(arg)
   (interactive "P")
