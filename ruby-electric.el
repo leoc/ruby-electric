@@ -162,7 +162,9 @@ strings. Note that you must have Font Lock enabled."
 
 (defun ruby-electric-matching-paren(arg)
   (interactive "P")
-  (if (looking-at (string last-command-event))
+  (if (and (looking-at (string last-command-event))
+           (not (save-excursion (backward-char 1)
+                                (looking-at "\\\\"))))
       (forward-char 1)
     (ruby-electric-matching-char arg)))
 
