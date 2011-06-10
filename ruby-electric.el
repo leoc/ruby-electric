@@ -19,8 +19,11 @@
 (defconst ruby-electric-expandable-do-re
   "do\\s-$")
 
-(defconst ruby-electric-expandable-bar
-  "\\s-\\(do\\s-+\\|{\\s-*\\)|")
+(defconst ruby-electric-add-pipes
+  "\\(\\s-do\\s-+\\|{\\s-*\\)")
+
+(defconst ruby-electric-in-pipes
+  "\\(\\s-do\\s-+\\|{\\s-*\\)|[^|]*")
 
 (defvar ruby-electric-matching-delimeter-alist
   '((?\[ . ?\])
@@ -168,13 +171,25 @@ strings. Note that you must have Font Lock enabled."
 
 (defun ruby-electric-bar(arg)
   (interactive "P")
-  (self-insert-command (prefix-numeric-value arg))
-  (and (ruby-electric-is-last-command-char-expandable-punct-p)
-       (ruby-electric-code-at-point-p)
-       (and (save-excursion (re-search-backward ruby-electric-expandable-bar nil t))
-            (= (point) (match-end 0))) ;looking-back is missing on XEmacs
-       (save-excursion
-         (insert "|"))))
+  (cond ((looking-back ruby-electric-add-pipes) 
+         (self-insert-command (prefix-numeric-value arg)) (save-excursion (insert "|")))
+        ((looking-back ruby-electric-in-pipes)
+         (re-search-forward "|" nil t))
+        (t self-insert-command (prefix-numeric-value arg))))
+
+;; (defun ruby-electric-bar(arg)
+;;   (interactive "P")
+;;   (let* ((sanity-checks (and (ruby-electric-is-last-command-char-expandable-punct-p)
+;;                              (ruby-electric-code-at-point-p)))
+;;          (expandable-bar-index (or (save-excursion (re-search-backward ruby-electric-expandable-bar nil t)) (match-end 0) -1))
+;;          (last-bar-index (or (save-excursion (re-search-backward "|" nil t)) (match-end 0) -1))) 
+;;   (and sanity-checks
+;;        (or (= expandable-bar-index -1)
+;;            (> last-bar-index expandable-bar-index) ;looking-back is missing on XEmacs
+;;            (forward-char 1))
+;;        (or (self-insert-command (prefix-numeric-value arg))
+;;            (save-excursion
+;;              (insert "|"))))))
 
 (defun ruby-electric-return-can-be-expanded-p()
   (if (ruby-electric-code-at-point-p)
