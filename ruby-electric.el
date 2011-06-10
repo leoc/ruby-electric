@@ -1,12 +1,18 @@
-;; ruby-electric.el --- electric editing commands for ruby files
+;; ruby-electric.el --- electric editing commands for unique ruby syntax
+;;
+;; Destroying all character closing commands, as the semantics in ruby-electric are done
+;; far less comprehensively than are done in autopair.el (http://autopair.googlecode.com/svn/trunk/autopair.el)
+;; Improved the semantic comprehension of pipes and blocks, so that the closing pipe or end is only inserted
+;; if an appropriately matching end is not already present.
 ;;
 ;; Copyright (C) 2005 by Dee Zsombor
 ;;
 ;; Authors: Dee Zsombor <dee dot zsombor at gmail dot com>
 ;; Maintainer: Jakub Kuźma <qoobaa@gmail.com>
-;; URL: http://github.com/qoobaa/ruby-electric/raw/master/ruby-electric.el
+;; Gutter: Alex Redington <aredington at gmail dot com>
+;; URL: http://github.com/aredington/ruby-electric/raw/master/ruby-electric.el
 ;; Keywords: languages ruby
-;; Version: 1.1
+;; Version: 1.1.1
 
 ;;; Code:
 
@@ -25,13 +31,6 @@
 (defconst ruby-electric-in-pipes
   "\\(\\s-do\\s-+\\|{\\s-*\\)|[^|]*")
 
-(defvar ruby-electric-matching-delimeter-alist
-  '((?\[ . ?\])
-    (?\( . ?\))
-    (?\' . ?\')
-    (?\` . ?\`)
-    (?\" . ?\")))
-
 (defcustom ruby-electric-simple-keywords-re
   (regexp-opt '("def" "if" "class" "module" "unless" "case" "while" "do" "until" "for" "begin") t)
   "*Regular expresion matching keywords for which closing 'end'
@@ -43,12 +42,6 @@ is to be inserted."
 inserted. The word 'all' will do all insertions."
   :type '(set :extra-offset 8
               (const :tag "Everything" all )
-              (const :tag "Curly brace" ?\{ )
-              (const :tag "Square brace" ?\[ )
-              (const :tag "Round brace" ?\( )
-              (const :tag "Quote" ?\' )
-              (const :tag "Double quote" ?\" )
-              (const :tag "Back quote" ?\` )
               (const :tag "Vertical bar" ?\| ))
   :group 'ruby-electric)
 
@@ -80,18 +73,10 @@ strings. Note that you must have Font Lock enabled."
 
 (defun ruby-electric-setup-keymap()
   (define-key ruby-mode-map " " 'ruby-electric-space)
-  (define-key ruby-mode-map "{" 'ruby-electric-curlies)
-  (define-key ruby-mode-map "(" 'ruby-electric-matching-char)
-  (define-key ruby-mode-map "[" 'ruby-electric-matching-char)
-  (define-key ruby-mode-map "\"" 'ruby-electric-identical-char)
-  (define-key ruby-mode-map "\'" 'ruby-electric-identical-char)
   (define-key ruby-mode-map "|" 'ruby-electric-bar)
   (define-key ruby-mode-map (kbd "RET") 'ruby-electric-return)
   (define-key ruby-mode-map (kbd "C-j") 'ruby-electric-return)
-  (define-key ruby-mode-map (kbd "C-m") 'ruby-electric-return)
-  (define-key ruby-mode-map "}" 'ruby-electric-close-matching-char)
-  (define-key ruby-mode-map ")" 'ruby-electric-close-matching-char)
-  (define-key ruby-mode-map "]" 'ruby-electric-close-matching-char))
+  (define-key ruby-mode-map (kbd "C-m") 'ruby-electric-return))
 
 (defun ruby-electric-space (arg)
   (interactive "P")
@@ -132,54 +117,6 @@ strings. Note that you must have Font Lock enabled."
                      (looking-at ruby-electric-single-keyword-in-line-re))))))))
 
 
-(defun ruby-electric-curlies(arg)
-  (interactive "P")
-  (self-insert-command (prefix-numeric-value arg))
-  (if (ruby-electric-is-last-command-char-expandable-punct-p)
-      (cond ((ruby-electric-code-at-point-p)
-             (save-excursion
-               (if ruby-electric-newline-before-closing-bracket
-                   (newline))
-               (insert "}")))
-            ((ruby-electric-string-at-point-p)
-             (save-excursion
-               (backward-char 1)
-               (when (char-equal ?\# (preceding-char))
-                 (forward-char 1)
-                 (insert "}")))))))
-
-(defun ruby-electric-close-curlies(arg)
-  (interactive "P")
-  (if (looking-at "}")
-      (forward-char 1)
-    (self-insert-command (prefix-numeric-value arg))))
-
-(defun ruby-electric-matching-char(arg)
-  (interactive "P")
-  (self-insert-command (prefix-numeric-value arg))
-  (and (ruby-electric-is-last-command-char-expandable-punct-p)
-       (ruby-electric-code-at-point-p)
-       (save-excursion
-         (insert (cdr (assoc last-command-event
-                             ruby-electric-matching-delimeter-alist))))))
-
-(defun ruby-electric-close-matching-char(arg)
-  (interactive "P")
-  (if (looking-at (string last-command-event))
-      (forward-char 1)
-    (self-insert-command (prefix-numeric-value arg))))
-
-(defun ruby-electric-identical-char(arg)
-  (interactive "P")
-  (and (ruby-electric-is-last-command-char-expandable-punct-p)
-       (cond ((ruby-electric-code-at-point-p)
-              (self-insert-command (prefix-numeric-value arg))
-              (save-excursion
-                (insert (cdr (assoc last-command-event
-                                    ruby-electric-matching-delimeter-alist)))))
-             ((null (looking-back "\\\\")) (forward-char 1))
-             (t (self-insert-command (prefix-numeric-value arg))))))
-
 (defun ruby-electric-bar(arg)
   (interactive "P")
   (cond ((looking-back ruby-electric-add-pipes) 
@@ -191,10 +128,15 @@ strings. Note that you must have Font Lock enabled."
 (defun ruby-electric-return-can-be-expanded-p()
   (if (ruby-electric-code-at-point-p)
       (let* ((ruby-electric-keywords-re
-              (concat ruby-electric-simple-keywords-re "$")))
-        (save-excursion
-          (ruby-backward-sexp 1)
-          (looking-at ruby-electric-keywords-re)))))
+              (concat ruby-electric-simple-keywords-re "$"))
+             (previous-sexp-identation
+              (save-excursion (ruby-backward-sexp 1) (ruby-current-indentation)))
+             (next-sexp-indentation
+              (save-excursion (ruby-forward-sexp 1) (ruby-current-indentation))))
+        (and (save-excursion
+               (ruby-backward-sexp 1)
+               (looking-at ruby-electric-keywords-re))
+             (not (= previous-sexp-identation next-sexp-indentation))))))
 
 (defun ruby-electric-return ()
   (interactive "*")
