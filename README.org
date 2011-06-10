@@ -1,14 +1,21 @@
 * ruby-electric.el
-
 Due credit: this work was inspired by a code snippet posted by
 Frederick Ros at http://rubygarden.org/ruby?EmacsExtensions.
 
+This is a fork of https://github.com/qoobaa/ruby-electric, intended
+to focus on only uniquely rubyish electric logic. All the characters
+removed (", ', {}, [], and ()) are better handled by autopair.el 
+(http://code.google.com/p/autopair/)
+
 * Following improvements were added:
 
+- more picky about inserting end symbols
+- proper closing of pipes for specifying arguments to blocks
+- remove all generally syntactically significant characters
 - handling of strings of type 'here document'
 - more keywords, with special handling for 'do'
 - packaged into a minor mode
-
+  
 * Usage:
 
 0) copy ruby-electric.el into directory where emacs can find it.
@@ -19,7 +26,7 @@ Frederick Ros at http://rubygarden.org/ruby?EmacsExtensions.
    (require 'ruby-electric)
 
 2) toggle Ruby Electric Mode on/off with ruby-electric-mode.
-
+   
 * Changelog:
 
 2005/Jan/14: inserts matching pair delimiters like {, [, (, ', ", '
@@ -39,3 +46,6 @@ like [:space:] since they are not implemented on XEmacs.
 
 2005/Mar/06: now stored inside ruby CVS; customize pages now have ruby
 as parent; cosmetic fixes.
+
+2011/Jun/10: remove pair delimeters, more pessimistically insert '|'
+and 'end'
