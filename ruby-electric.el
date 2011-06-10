@@ -83,8 +83,8 @@ strings. Note that you must have Font Lock enabled."
   (define-key ruby-mode-map "{" 'ruby-electric-curlies)
   (define-key ruby-mode-map "(" 'ruby-electric-matching-char)
   (define-key ruby-mode-map "[" 'ruby-electric-matching-char)
-  (define-key ruby-mode-map "\"" 'ruby-electric-matching-char)
-  (define-key ruby-mode-map "\'" 'ruby-electric-matching-char)
+  (define-key ruby-mode-map "\"" 'ruby-electric-identical-char)
+  (define-key ruby-mode-map "\'" 'ruby-electric-identical-char)
   (define-key ruby-mode-map "|" 'ruby-electric-bar)
   (define-key ruby-mode-map (kbd "RET") 'ruby-electric-return)
   (define-key ruby-mode-map (kbd "C-j") 'ruby-electric-return)
@@ -169,6 +169,17 @@ strings. Note that you must have Font Lock enabled."
       (forward-char 1)
     (self-insert-command (prefix-numeric-value arg))))
 
+(defun ruby-electric-identical-char(arg)
+  (interactive "P")
+  (and (ruby-electric-is-last-command-char-expandable-punct-p)
+       (cond ((ruby-electric-code-at-point-p)
+              (self-insert-command (prefix-numeric-value arg))
+              (save-excursion
+                (insert (cdr (assoc last-command-event
+                                    ruby-electric-matching-delimeter-alist)))))
+             ((null (looking-back "\\\\")) (forward-char 1))
+             (t (self-insert-command (prefix-numeric-value arg))))))
+
 (defun ruby-electric-bar(arg)
   (interactive "P")
   (cond ((looking-back ruby-electric-add-pipes) 
@@ -176,20 +187,6 @@ strings. Note that you must have Font Lock enabled."
         ((looking-back ruby-electric-in-pipes)
          (re-search-forward "|" nil t))
         (t self-insert-command (prefix-numeric-value arg))))
-
-;; (defun ruby-electric-bar(arg)
-;;   (interactive "P")
-;;   (let* ((sanity-checks (and (ruby-electric-is-last-command-char-expandable-punct-p)
-;;                              (ruby-electric-code-at-point-p)))
-;;          (expandable-bar-index (or (save-excursion (re-search-backward ruby-electric-expandable-bar nil t)) (match-end 0) -1))
-;;          (last-bar-index (or (save-excursion (re-search-backward "|" nil t)) (match-end 0) -1))) 
-;;   (and sanity-checks
-;;        (or (= expandable-bar-index -1)
-;;            (> last-bar-index expandable-bar-index) ;looking-back is missing on XEmacs
-;;            (forward-char 1))
-;;        (or (self-insert-command (prefix-numeric-value arg))
-;;            (save-excursion
-;;              (insert "|"))))))
 
 (defun ruby-electric-return-can-be-expanded-p()
   (if (ruby-electric-code-at-point-p)
