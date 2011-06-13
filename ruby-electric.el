@@ -123,20 +123,17 @@ strings. Note that you must have Font Lock enabled."
          (self-insert-command (prefix-numeric-value arg)) (save-excursion (insert "|")))
         ((looking-back ruby-electric-in-pipes)
          (re-search-forward "|" nil t))
-        (t self-insert-command (prefix-numeric-value arg))))
+        (t (self-insert-command (prefix-numeric-value arg)))))
 
 (defun ruby-electric-return-can-be-expanded-p()
   (if (ruby-electric-code-at-point-p)
       (let* ((ruby-electric-keywords-re
-              (concat ruby-electric-simple-keywords-re "$"))
-             (previous-sexp-identation
-              (save-excursion (ruby-backward-sexp 1) (ruby-current-indentation)))
-             (next-sexp-indentation
-              (save-excursion (ruby-forward-sexp 1) (ruby-current-indentation))))
+              (concat ruby-electric-simple-keywords-re "$")))
         (and (save-excursion
                (ruby-backward-sexp 1)
                (looking-at ruby-electric-keywords-re))
-             (not (= previous-sexp-identation next-sexp-indentation))))))
+             (or (< (save-excursion (ruby-end-of-block) (point)) (point)) 
+                 (> (ruby-current-indentation) (save-excursion (ruby-end-of-block) (ruby-current-indentation))))))))
 
 (defun ruby-electric-return ()
   (interactive "*")
