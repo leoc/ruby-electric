@@ -132,8 +132,12 @@ strings. Note that you must have Font Lock enabled."
         (and (save-excursion
                (ruby-backward-sexp 1)
                (looking-at ruby-electric-keywords-re))
-             (or (< (save-excursion (ruby-end-of-block) (point)) (point)) 
-                 (> (ruby-current-indentation) (save-excursion (ruby-end-of-block) (ruby-current-indentation))))))))
+             (or (< (save-excursion (ruby-end-of-block) (point)) (point))
+                 (> (ruby-current-indentation) (save-excursion (ruby-end-of-block) (ruby-current-indentation)))
+                 (and (= (save-excursion (re-search-forward ruby-electric-keywords-re nil t) (ruby-current-indentation))
+                         (save-excursion (ruby-end-of-block) (ruby-current-indentation)))
+                      (< (save-excursion (re-search-forward ruby-electric-keywords-re nil t) (point))
+                         (save-excursion (ruby-end-of-block) (point)))))))))
 
 (defun ruby-electric-return ()
   (interactive "*")
