@@ -127,13 +127,14 @@ strings. Note that you must have Font Lock enabled."
 
 (defun ruby-electric-return-can-be-expanded-p()
   (if (ruby-electric-code-at-point-p)
-      (let* ((ruby-electric-keywords-re
-              (concat ruby-electric-simple-keywords-re "$")))
-        (and (save-excursion
-               (ruby-backward-sexp 1)
-               (looking-at ruby-electric-keywords-re))
-             (or (< (save-excursion (ruby-end-of-block) (point)) (point))
-                 (> (ruby-current-indentation) (save-excursion (ruby-end-of-block) (ruby-current-indentation)))
+      (let* ((ruby-electric-keywords-re (concat ruby-electric-simple-keywords-re "$"))
+             (indentation-at-start (save-excursion (ruby-backward-sexp 1) (ruby-current-indentation)))
+             (keyword-at-start-p (save-excursion (ruby-backward-sexp 1) (looking-at ruby-electric-keywords-re)))
+             (indentation-at-end (save-excursion (ruby-end-of-block) (ruby-current-indentation)))
+             (point-at-end (save-excursion (ruby-end-of-block) (point))))
+        (and keyword-at-start-p
+             (or (< point-at-end (point))
+                 (> indentation-at-start indentation-at-end)
                  (and (= (save-excursion (re-search-forward ruby-electric-keywords-re nil t) (ruby-current-indentation))
                          (save-excursion (ruby-end-of-block) (ruby-current-indentation)))
                       (< (save-excursion (re-search-forward ruby-electric-keywords-re nil t) (point))
