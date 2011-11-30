@@ -74,6 +74,7 @@ strings. Note that you must have Font Lock enabled."
 (defun ruby-electric-setup-keymap()
   (define-key ruby-mode-map " " 'ruby-electric-space)
   (define-key ruby-mode-map "|" 'ruby-electric-bar)
+  (define-key ruby-mode-map "#" 'ruby-electric-string-interpolation)
   (define-key ruby-mode-map (kbd "RET") 'ruby-electric-return)
   (define-key ruby-mode-map (kbd "C-j") 'ruby-electric-return)
   (define-key ruby-mode-map (kbd "C-m") 'ruby-electric-return))
@@ -115,6 +116,13 @@ strings. Note that you must have Font Lock enabled."
                    (progn
                      (beginning-of-line)
                      (looking-at ruby-electric-single-keyword-in-line-re))))))))
+
+(defun ruby-electric-string-interpolation()
+  (interactive)
+  (if (ruby-electric-string-at-point-p)
+      (progn (save-excursion (insert "#{}")) 
+             (forward-char 2))
+    (insert "#")))
 
 (defun ruby-electric-bar(arg)
   (interactive "P")
